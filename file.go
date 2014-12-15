@@ -90,7 +90,7 @@ func OpenFile(name string, opt *Options) (db *DB, err error) {
 		}
 	}
 
-	fi, err := newFileFromOSFile(f) // always ACID
+	fi, err := newFileFromOSFile(f, opt) // always ACID
 	if err != nil {
 		return
 	}
@@ -102,7 +102,7 @@ func OpenFile(name string, opt *Options) (db *DB, err error) {
 		}
 	}
 
-	return newDB(fi)
+	return newDB(fi, opt)
 }
 
 // Options amend the behavior of OpenFile.
@@ -127,10 +127,18 @@ func OpenFile(name string, opt *Options) (db *DB, err error) {
 // interface.
 //
 // If TempFile is nil it defaults to ioutil.TempFile.
+//
+// Compressor
+//
+// Allow pluggable alternative block compressors. If Compressor is nil it
+// defaults to zappy[0].
+//
+//   [0]: http://godoc.org/github.com/cznic/zappy
 type Options struct {
 	CanCreate bool
 	OSFile    lldb.OSFile
 	TempFile  func(dir, prefix string) (f lldb.OSFile, err error)
+	lldb.Compressor
 }
 
 type fileBTreeIterator struct {
@@ -387,7 +395,7 @@ type file struct {
 	wal      *os.File
 }
 
-func newFileFromOSFile(f lldb.OSFile) (fi *file, err error) {
+func newFileFromOSFile(f lldb.OSFile, opts *Options) (fi *file, err error) {
 	nm := lockName(f.Name())
 	lck, err := lock.Lock(nm)
 	if err != nil {
@@ -459,7 +467,7 @@ func newFileFromOSFile(f lldb.OSFile) (fi *file, err error) {
 			return nil, err
 		}
 
-		a, err := lldb.NewAllocator(filer, &lldb.Options{})
+		a, err := lldb.NewAllocator(filer, &lldb.Options{Compressor: opts.Compressor})
 		if err != nil {
 			return nil, err
 		}
@@ -513,7 +521,7 @@ func newFileFromOSFile(f lldb.OSFile) (fi *file, err error) {
 			return nil, err
 		}
 
-		a, err := lldb.NewAllocator(filer, &lldb.Options{})
+		a, err := lldb.NewAllocator(filer, &lldb.Options{Compressor: opts.Compressor})
 		if err != nil {
 			return nil, err
 		}
@@ -648,7 +656,7 @@ func (s *file) collate(a, b []byte) int { //TODO w/ error return
 	return collate(da, db)
 }
 
-func (s *file) CreateTemp(asc bool) (bt temp, err error) {
+func (s *file) CreateTemp(asc bool, opts *Options) (bt temp, err error) {
 	f, err := s.tempFile("", "ql-tmp-")
 	if err != nil {
 		return nil, err
@@ -656,7 +664,7 @@ func (s *file) CreateTemp(asc bool) (bt temp, err error) {
 
 	fn := f.Name()
 	filer := lldb.NewOSFiler(f)
-	a, err := lldb.NewAllocator(filer, &lldb.Options{})
+	a, err := lldb.NewAllocator(filer, &lldb.Options{Compressor: opts.Compressor})
 	if err != nil {
 		f.Close()
 		os.Remove(fn)

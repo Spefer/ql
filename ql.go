@@ -164,7 +164,7 @@ type groupByRset struct {
 }
 
 func (r *groupByRset) do(ctx *execCtx, onlyNames bool, f func(id interface{}, data []interface{}) (more bool, err error)) (err error) {
-	t, err := ctx.db.store.CreateTemp(true)
+	t, err := ctx.db.store.CreateTemp(true, ctx.db.opts)
 	if err != nil {
 		return
 	}
@@ -351,7 +351,7 @@ type distinctRset struct {
 }
 
 func (r *distinctRset) do(ctx *execCtx, onlyNames bool, f func(id interface{}, data []interface{}) (more bool, err error)) (err error) {
-	t, err := ctx.db.store.CreateTemp(true)
+	t, err := ctx.db.store.CreateTemp(true, ctx.db.opts)
 	if err != nil {
 		return
 	}
@@ -420,7 +420,7 @@ func (r *orderByRset) String() string {
 }
 
 func (r *orderByRset) do(ctx *execCtx, onlyNames bool, f func(id interface{}, data []interface{}) (more bool, err error)) (err error) {
-	t, err := ctx.db.store.CreateTemp(r.asc)
+	t, err := ctx.db.store.CreateTemp(r.asc, ctx.db.opts)
 	if err != nil {
 		return
 	}
@@ -1653,12 +1653,14 @@ type DB struct {
 	store storage
 	timer *time.Timer
 	tnl   int // Transaction nesting level
+	opts  *Options
 }
 
-func newDB(store storage) (db *DB, err error) {
+func newDB(store storage, opts *Options) (db *DB, err error) {
 	db0 := &DB{
 		state: stDisabled,
 		store: store,
+		opts:  opts,
 	}
 	if db0.root, err = newRoot(store); err != nil {
 		return

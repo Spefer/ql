@@ -17,7 +17,7 @@ type storage interface {
 	Commit() error
 	Create(data ...interface{}) (h int64, err error)
 	CreateIndex(unique bool) (handle int64, x btreeIndex, err error)
-	CreateTemp(asc bool) (bt temp, err error)
+	CreateTemp(asc bool, opts *Options) (bt temp, err error)
 	Delete(h int64, blobCols ...*col) error //LATER split the nil blobCols case
 	ID() (id int64, err error)
 	Name() string

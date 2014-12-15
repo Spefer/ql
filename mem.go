@@ -293,7 +293,7 @@ func OpenMem() (db *DB, err error) {
 		return
 	}
 
-	if db, err = newDB(s); err != nil {
+	if db, err = newDB(s, &Options{}); err != nil {
 		return nil, err
 	}
 
@@ -332,7 +332,7 @@ func (s *mem) String() string {
 	return b.String()
 }
 
-func (s *mem) CreateTemp(asc bool) (_ temp, err error) {
+func (s *mem) CreateTemp(asc bool, _ *Options) (_ temp, err error) {
 	st, err := newMemStorage()
 	if err != nil {
 		return
